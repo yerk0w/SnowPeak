@@ -9,14 +9,23 @@ const apiCats = [
   "Аксессуары",
 ];
 const keys = ["all", "skis", "snowboards", "boots", "gear", "accessories"];
+const asset = (name) => `${import.meta.env.BASE_URL}assets/${name}`;
 const photo = {
-  1: "/assets/product-skis.png",
-  2: "/assets/product-snowboard.png",
-  3: "/assets/product-helmet.png",
-  4: "/assets/product-goggles.png",
-  5: "/assets/product-boots.png",
-  6: "/assets/product-poles.png",
+  1: asset("product-skis.png"),
+  2: asset("product-snowboard.png"),
+  3: asset("product-helmet.png"),
+  4: asset("product-goggles.png"),
+  5: asset("product-boots.png"),
+  6: asset("product-poles.png"),
 };
+const fallbackProducts = [
+  { id: 1, name: "Лыжи Nordic Flow 84", category: "Лыжи", price: 89990, oldPrice: 99990, rating: 4.9, description: "Универсальные горные лыжи для уверенных спусков.", badge: "Хит" },
+  { id: 2, name: "Сноуборд Alpine Core", category: "Сноуборды", price: 74990, rating: 4.8, description: "Стабильная доска с отзывчивым прогибом.", badge: "Новинка" },
+  { id: 3, name: "Шлем Frost Guard", category: "Экипировка", price: 18990, oldPrice: 21990, rating: 4.7, description: "Лёгкая защита с регулируемой вентиляцией.", badge: "-14%" },
+  { id: 4, name: "Маска Ice Vision Pro", category: "Экипировка", price: 15990, rating: 4.9, description: "Контрастная линза для переменчивой погоды.", badge: "" },
+  { id: 5, name: "Ботинки Summit 90", category: "Ботинки", price: 64990, oldPrice: 71990, rating: 4.6, description: "Тёплые ботинки с точной посадкой.", badge: "-10%" },
+  { id: 6, name: "Палки Carbon Trail", category: "Аксессуары", price: 12990, rating: 4.8, description: "Прочные и лёгкие палки из карбона.", badge: "" },
+];
 const text = {
   ru: {
     lang: "РУС",
@@ -238,8 +247,9 @@ export default function App() {
       "/api/products?category=" +
         encodeURIComponent(apiCats[keys.indexOf(cat)]),
     )
-      .then((r) => r.json())
-      .then(setProducts);
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("API unavailable"))))
+      .then(setProducts)
+      .catch(() => setProducts(fallbackProducts.filter((item) => cat === "all" || item.category === apiCats[keys.indexOf(cat)])));
   }, [cat]);
   useEffect(() => {
     const sync = () => setCrm(window.location.hash === "#crm");
@@ -393,7 +403,7 @@ export default function App() {
         </section>
         <section id="about" className="about section">
           <div className="about-image">
-            <img src="/assets/about-alpine-skier.png" alt="Alpine skier" />
+            <img src={asset("about-alpine-skier.png")} alt="Alpine skier" />
           </div>
           <div>
             <p className="eyebrow">{t.about}</p>
@@ -559,7 +569,7 @@ function ProductConfig({ product, onClose, onAdd }) {
   const [colorIndex, setColorIndex] = useState(0);
   const sizes = product.category === 'Ботинки' ? ['39','40','41','42','43','44'] : ['S','M','L','XL'];
   const colors = ['Графит', 'Ледяной синий', 'Белый'];
-  const sheets = { 1:'/assets/variant-skis.png',2:'/assets/variant-boots.png',3:'/assets/variant-poles.png',4:'/assets/variant-snowboard.png',5:'/assets/variant-helmet.png',6:'/assets/variant-goggles.png' };
+  const sheets = { 1:asset('variant-skis.png'),2:asset('variant-boots.png'),3:asset('variant-poles.png'),4:asset('variant-snowboard.png'),5:asset('variant-helmet.png'),6:asset('variant-goggles.png') };
   const positions = ['0% 50%', '50% 50%', '100% 50%'];
   return <div className="overlay" onMouseDown={onClose}><div className="modal product-config" onMouseDown={(e) => e.stopPropagation()}><button className="close" onClick={onClose}>×</button><div className="config-photo variant-sheet"><img style={{ objectPosition: positions[colorIndex] }} src={sheets[product.id]} alt={`${product.name}, ${color}`} /><span>{color}</span></div><p className="eyebrow">ВЫБОР ВАРИАНТА</p><h2>{product.name}</h2><p>Выберите размер и цвет перед добавлением в корзину.</p><b>Размер</b><div className="option-row">{sizes.map((item) => <button className={size === item ? 'selected' : ''} onClick={() => setSize(item)} key={item}>{item}</button>)}</div><b>Цвет</b><div className="option-row colors">{colors.map((item, index) => <button className={color === item ? 'selected' : ''} onClick={() => { setColor(item); setColorIndex(index); }} key={item}><i className={`color-dot c${index}`} />{item}</button>)}</div><div className="detail-bottom"><b>{price(product.price, 'ru')}</b><button className="primary" onClick={() => onAdd(`${size} · ${color}`)}>В корзину <span>→</span></button></div></div></div>;
 }
