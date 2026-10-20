@@ -1,0 +1,10 @@
+node_modules/
+dist/
+snowpeak-site/
+snowpeak-site.zip
+snowpeak.db
+snowpeak.db-shm
+snowpeak.db-wal
+.DS_Store
+outputs/
+work/
