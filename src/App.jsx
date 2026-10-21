@@ -523,14 +523,16 @@ export default function App() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 const form = new FormData(e.currentTarget);
-                const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: form.get('name'), phone: form.get('phone'), email: form.get('email') || '', delivery: form.get('payment') === 'pickup' ? 'Самовывоз' : 'Оплата картой', address: '', items: cart.map(({id,name,qty,variant}) => ({id,name,qty,variant})), total }) });
-                if (!response.ok) { setNotice('Не удалось сохранить заказ'); return; }
-                setOrder(false); setCart([]); setNotice(t.confirm);
+                try {
+                  const response = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: form.get('name'), phone: form.get('phone'), email: form.get('email') || '', delivery: form.get('payment') === 'pickup' ? 'Самовывоз' : 'Оплата картой', address: '', items: cart.map(({id,name,qty,variant}) => ({id,name,qty,variant})), total }) });
+                  if (!response.ok) { setNotice('Не удалось сохранить заказ'); return; }
+                  setOrder(false); setCart([]); setNotice('✓ Заказ принят');
+                } catch { setNotice('Запустите бэкенд: npm run server'); }
               }}
             >
-              <input required placeholder={t.name} />
-              <input required placeholder={t.phone} />
-              <input placeholder="Email" />
+              <input name="name" required placeholder={t.name} />
+              <input name="phone" required placeholder={t.phone} />
+              <input name="email" type="email" placeholder="Email" />
               <p className="payment-label">{u.payment}</p><div className="payment-choice"><label><input type="radio" name="payment" value="card" defaultChecked /> <span>💳</span><b>{u.card}</b><small>{u.cardHint}</small></label><label><input type="radio" name="payment" value="pickup" /> <span>🏪</span><b>{u.pickup}</b><small>{u.pickupHint}</small></label></div>
               <div className="fake-card"><span>SNOWPEAK PAY</span><input inputMode="numeric" placeholder="0000 0000 0000 0000" /><div><input placeholder="MM / ГГ" /><input placeholder="CVC" /></div></div>
               <button className="primary full">{t.confirm} →</button>
