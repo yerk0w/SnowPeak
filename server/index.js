@@ -74,6 +74,45 @@ if (!count) {
   seed(products);
 }
 
+// Демо-данные для лабораторной CRM: отображаются на чистой базе и не дублируются.
+if (!db.prepare("SELECT id FROM users WHERE email = 'demo.anna@snowpeak.kz'").get()) {
+  const customers = [
+    ['Анна Соколова', 'demo.anna@snowpeak.kz'],
+    ['Данияр Ахметов', 'demo.daniyar@snowpeak.kz'],
+    ['Мадина Ермекова', 'demo.madina@snowpeak.kz'],
+    ['Илья Романов', 'demo.ilya@snowpeak.kz'],
+    ['Айгерим Нурланова', 'demo.aigerim@snowpeak.kz'],
+  ];
+  const addCustomer = db.prepare('INSERT INTO users (name,email,password_hash) VALUES (?,?,?)');
+  const addOrder = db.prepare(`INSERT INTO orders (customer_name,phone,email,delivery,address,items_json,total,status,created_at)
+    VALUES (?,?,?,?,?,?,?,?,?)`);
+  const addReservation = db.prepare(`INSERT INTO reservations (user_id,customer_name,phone,reservation_date,reservation_time,guests,comment,status)
+    VALUES (?,?,?,?,?,?,?,?)`);
+  const addFeedback = db.prepare('INSERT INTO feedback (name,email,message) VALUES (?,?,?)');
+  const seedCrm = db.transaction(() => {
+    customers.forEach(([name, email]) => addCustomer.run(name, email, hashPassword('snowpeak2026')));
+    const idByEmail = Object.fromEntries(customers.map(([, email]) => [email, db.prepare('SELECT id FROM users WHERE email = ?').get(email).id]));
+    [
+      ['Анна Соколова', '+7 701 440 21 18', 'demo.anna@snowpeak.kz', 'Оплата картой', '[{"id":1,"name":"Лыжи Nordic Flow 84","qty":1,"variant":"M · Графит"}]', 89990, 'Новый', '2026-10-20 10:15:00'],
+      ['Данияр Ахметов', '+7 775 120 36 94', 'demo.daniyar@snowpeak.kz', 'Самовывоз', '[{"id":2,"name":"Сноуборд Alpine Core","qty":1,"variant":"L · Ледяной синий"}]', 74990, 'Подтверждён', '2026-10-19 15:30:00'],
+      ['Мадина Ермекова', '+7 747 821 05 41', 'demo.madina@snowpeak.kz', 'Оплата картой', '[{"id":5,"name":"Ботинки Summit 90","qty":1,"variant":"40 · Белый"}]', 56990, 'Собирается', '2026-10-18 12:00:00'],
+      ['Илья Романов', '+7 705 678 92 10', 'demo.ilya@snowpeak.kz', 'Курьерская доставка', '[{"id":3,"name":"Шлем Frost Guard","qty":1,"variant":"M · Графит"},{"id":6,"name":"Палки Carbon Trail","qty":1,"variant":"L · Ледяной синий"}]', 31980, 'Передан в доставку', '2026-10-17 18:45:00'],
+      ['Айгерим Нурланова', '+7 702 555 14 77', 'demo.aigerim@snowpeak.kz', 'Оплата картой', '[{"id":4,"name":"Маска Ice Vision Pro","qty":1,"variant":"S · Белый"}]', 24990, 'Завершён', '2026-10-15 11:20:00'],
+    ].forEach(([name, phone, email, delivery, items, total, status, created]) => addOrder.run(name, phone, email, delivery, '', items, total, status, created));
+    [
+      [idByEmail['demo.anna@snowpeak.kz'], 'Анна Соколова', '+7 701 440 21 18', '2026-10-25', '12:00', 2, 'Подобрать комплект для трассы.', 'Подтверждена'],
+      [idByEmail['demo.daniyar@snowpeak.kz'], 'Данияр Ахметов', '+7 775 120 36 94', '2026-10-26', '16:30', 1, 'Примерка ботинок 42 размера.', 'Новая'],
+      [idByEmail['demo.madina@snowpeak.kz'], 'Мадина Ермекова', '+7 747 821 05 41', '2026-10-27', '14:00', 3, 'Консультация по сноубордам.', 'Завершена'],
+    ].forEach((row) => addReservation.run(...row));
+    [
+      ['Анна Соколова', 'demo.anna@snowpeak.kz', 'Подскажите, можно ли забрать заказ после 19:00?'],
+      ['Илья Романов', 'demo.ilya@snowpeak.kz', 'Нужна доставка в Медеуский район на выходных.'],
+      ['Мадина Ермекова', 'demo.madina@snowpeak.kz', 'Спасибо за консультацию, вернусь за шлемом.'],
+    ].forEach((row) => addFeedback.run(...row));
+  });
+  seedCrm();
+}
+
 app.get('/api/products', (req, res) => {
   const { category = 'Все' } = req.query;
   const rows = category === 'Все'
